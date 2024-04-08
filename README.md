@@ -1,14 +1,14 @@
-Pokedex.py is a python program used to store, edit, and print Pokemon objects
-Can be used to either record a brand new pokedex (if you wanted to create a fan game), or to keep track of your pokedex completion in a main series game
+Pokedex.py is a python program used to store, edit, and print Pokemon objects.
+Can be used to either record a brand new pokedex (if you wanted to create a fan game), or to keep track of your pokedex completion in a main series game.
 	It performs the latter function by returning whatever entry is the next missing entry, so one doesn't have to run through menus to find it.
 
 The Pokemon object started out as a piece of another project I have planned for the future, involving an AI playing through an old Pokemon game. 
 	It stores info such as the species, both types, and the Dex number of the pokemon.
-	This object also has values stored for stats and will probably have more when that future project starts progressing
+	This object also has values stored for stats and will probably have more when that future project starts progressing.
 
 Overall this is a project to test my skills in data manipulation as well as storing and retrieving data from a file.
 Eventually, this same project will be used to do the same with my SQL abilities. 
-All of this is able to be run directly from your command line as long as python is installed on your PC 
+All of this is able to be run directly from your command line as long as python is installed on your PC. 
 C:\dir> python Pokedex.py
 
 ###############################################################################################################################################################
