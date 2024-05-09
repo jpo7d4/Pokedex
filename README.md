@@ -6,8 +6,7 @@ The Pokemon object started out as a piece of another project I have planned for 
 	It stores info such as the species, both types, and the Dex number of the pokemon.
 	This object also has values stored for stats and will probably have more when that future project starts progressing.
 
-Overall this is a project to test my skills in data manipulation as well as storing and retrieving data from a file.
-Eventually, this same project will be used to do the same with my SQL abilities. 
+This program has been updated to store Pokemon data in an Oracle SQL database instead of a text file.
 All of this is able to be run directly from your command line as long as python is installed on your PC. 
 C:\dir> python Pokedex.py
 
@@ -40,14 +39,22 @@ finds pokedex entry similarly to find_pok, but then provides options to edit the
 find_missing:
 finds the next missing entry in pokedex and returns the dex number that would be found at
 
-print_dexfile:
-prints pokedex dictionary to a file called Pokedex.txt
-formats entries similarly to how they are printed to screen
+update_dex:
+connects to db
+updates existing records in Pokedex table
+
+insert_dex:
+connects to db
+inserts new records to Pokedex table
+
+upload_dex: 
+connects to db
+creates Pokedex table if needed, and calls insert and update functions
 this is executed at the end of the program
 
-retrieve_dex:
-pulls pokedex entries from Pokedex.txt and parses through the text to find values
-assigns found values to Pokemon objects and rebuilds Pokedex dictionary
+download_dex:
+connects to db
+pulls records from Pokedex table and creates Pokedex dictionary
 this is executed when program starts
 ##############################################################################################################################################################
 
