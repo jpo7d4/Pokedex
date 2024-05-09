@@ -1,30 +1,42 @@
 '''
 Pokedex Project
 
-Program will take in user input to create a dictionary of pokemon (pokedex).
-	Include method to update Pokemon data
-Functionality will also include pulling that pokedex data from a file so data can be preserved
-	Eventually, this will be replaced with an SQL table
-Pokedex will be able to be fully printed to screen or to a file
-Will include method to find next unknown pokemon in pokedex.
+Takes in data from Pokedex table on an Oracle SQL database
+Program will take in user input to create more Pokemon objects.
+That data can be altered based on user input
+Oracle SQL table is created if it does not exist
+Pokedex dictionary is then uploaded to Oracle SQL database via insert or update
 
 
 '''
 
 
 import Pokemon
+import oracledb
 global Types
+global username
+global pw
+global path
+#define db parameters here:
+#user:
+username = "user"
+#password:
+pw = "password"
+#dsn:
+path = "dsn"
 Types = ['Grass','Fire','Water','Electric','Rock','Ground','Fighting','Psychic','Ghost','Poison','Bug','Ice','Dragon','Normal','Flying','Dark','Steel','Fairy']
-
 '''
-Function Definitions:
+Function Descriptions:
 new_entry: pulls user input to create new pokemon object. object then gets returned
 update_entry: Lets user update a pre-existing pokedex entry
-retrieve_dex: pulls dex data from Pokedex.txt
+upload_dex: creates table if needed, and calls insert and update functions
+update_dex: Updates existing records in Pokedex table
+insert_dex: inserts new records to Pokedex table
+download_dex: pulls records from Pokedex table and creates Pokedex dictionary
 find_pok: retrieves and prints out dex entry
 find_missing: finds and returns next missing entry in pokedex
 print_dex: formatting the pokedex entries for output
-print_dexfile: prints pokedex to Pokedex.txt
+
 sort_dex: sorts the pokedex dictionary by putting keys(Dex numbers) in a sorted list and assigning old dictionary items in order by key. returns new dictionary
 menu: prints ui menu. returns user answer
 '''
@@ -62,6 +74,8 @@ def print_dex(pok):
 		print(f"{pok.type1} {pok.type2}")
 	else:
 		print(pok.type1)
+	print(f'{pok.height} cm')
+	print(f'{pok.weight} kg')
 	print("_______________________")
 
 
@@ -74,11 +88,13 @@ def menu():
     print("5: Update existing Pokemon entry")
     print("6: Exit")
     return int(input(">"))
+
 def sort_dex(pokedex):
 	#Sorts dictionary by creating list of the key value numbers and sorting, then reassigning to new dictionary
 	Dexnums = list(pokedex.keys())
 	Dexnums.sort()
 	return {i: pokedex[i] for i in Dexnums}
+
 def find_pok(pokedex):
 	#prints pokemon to screen if found
 	print("What Pokemon are you looking for?")
@@ -94,6 +110,7 @@ def find_pok(pokedex):
 	    print_dex(pokedex[pok])
 	except:
 		print(f"Sorry, {pok} has not been recorded in this Pokedex.\n")
+
 def edit_entry(pokedex):
 	#edits the pokedex entry
 	print("What Pokemon are you looking for?")
@@ -114,8 +131,8 @@ def edit_entry(pokedex):
 	print("1: Species")
 	print("2: Types")
 	print("3: Dex Number")
-	#print("4: Height")
-	#print("5: Weight")
+	print("4: Height")
+	print("5: Weight")
 	print("6: Exit")
 	answer = int(input(">"))
 	while answer not in (1,2,3,4,5,6):
@@ -139,7 +156,13 @@ def edit_entry(pokedex):
 		newMon = pokedex[pok]
 		del pokedex[pok]
 		pokedex[newMon.DexNum] = newMon
-		sort_dex(pokedex)
+	if answer == 4:
+		ans = float(input('How tall is this Pokemon?\n>'))
+		pokedex[pok].setHeightWeight(ans,0)
+	if answer == 5:
+		ans = float(input('How much does this Pokemon weigh?\n>'))
+		pokedex[pok].setHeightWeight(0,ans)
+		
 
 def find_missing(pokedex):
 	#returns next missing entry in dictionary
@@ -152,69 +175,117 @@ def find_missing(pokedex):
 
 
 
-def print_dexfile(pokedex):
-	#prints dictionary to file
-	#this feature will be unused when SQL is integrated
-	dexfile = open('Pokedex.txt', mode = 'w')
-	for pok in pokedex:
-	    dexfile.write("_______________________\n")
-	    dexfile.write(str(pokedex[pok].DexNum) + '\n')
-	    dexfile.write(pokedex[pok].species + '\n')
-	    if pokedex[pok].type2 != 'none':
-		    dexfile.write(f"{pokedex[pok].type1} {pokedex[pok].type2}\n")
-	    else:
-		    dexfile.write(pokedex[pok].type1 + '\n')
-	    dexfile.write("_______________________\n")
-	dexfile.close()
-	print("Pokedex Printed to File")
 
-def retrieve_dex(pokedex):
-	#retrieves saved pokedex and formats it to Pokemon objects
+def insert_dex(pok):
+	#connects to database and inserts pokemon object to pokedex table
+	connection = oracledb.connect(
+		user = username,
+		password = pw,
+		dsn = path
+		)
+	cursor = connection.cursor()
+	cursor.execute("""
+		INSERT INTO Pokedex
+		VALUES(:dexnum, :species, :type1, :type2, :weight, :height)
+
+		""", (pok.DexNum, pok.species, pok.type1, pok.type2, pok.height, pok.weight))
+	connection.commit()
+	print(f"{pok.species} successfully recorded in Pokedex")
+
+def update_dex(pok):
+	#connects to database and updates pokemon data in pokedex table
+	connection = oracledb.connect(
+		user = username,
+		password = pw,
+		dsn = path
+		)
+	cursor = connection.cursor()
+	cursor.execute("""
+		UPDATE pokedex
+		SET species = :species, type1 = :type1, type2 = :type2, weight = :weight, height = :height
+		WHERE dexnum = :dexnum
+		""", (pok.species,pok.type1,pok.type2,pok.weight,pok.height,pok.DexNum))
+	connection.commit()
+	cursor.execute("""
+		UPDATE pokedex
+		SET dexnum = :dexnum
+		WHERE species = :species
+		""",(pok.DexNum,pok.species))
+
+	connection.commit()
+	print(f"{pok.species} Pokedex entry updated.")
+
+def upload_dex(pokedex):
+	#connects to database and creates table if needed. insert_dex and update_dex are called from here
+	connection = oracledb.connect(
+		user = username,
+		password = pw,
+		dsn = path
+		)
+	cursor = connection.cursor()
+	cursor.execute("""
+    	begin
+       		execute immediate 'drop table todoitem';
+        	exception when others then if sqlcode <> -942 then raise; end if;
+    	end;""")
 	try:
-		dexfile = open('Pokedex.txt', mode = 'r')
+		cursor.execute("""
+			CREATE TABLE Pokedex(
+				dexnum number not null,
+				species varchar(50) not null,
+				type1 varchar(50),
+				type2 varchar(50),
+				weight number(10,2),
+				height number(10,2),
+
+				CONSTRAINT pok_pk PRIMARY KEY (dexnum, species)
+				)
+
+			""")
 	except:
-		return 0
-	dexlist = dexfile.readlines()
-	dexfile.close()
-	DexNum = 0
-	spec = ""
-	type1 = ""
-	type2 = ""
-	index = 0
-	while index < len(dexlist):
-		dexlist[index] = dexlist[index].strip()
-		charindex = 0
-		if dexlist[index].isdigit():
-			DexNum = int(dexlist[index])
-			index+=1
-		elif dexlist[index] == '_______________________':
-			index+=1
-		else:	
-			while charindex < len(dexlist[index]):
-			    if dexlist[index][charindex].isspace():
-				    dexlist[index] = dexlist[index].split()
-			    charindex+=1
+		print("Saving Pokedex...\n")
+	for pok in pokedex:
+		try:
+			cursor.execute("""SELECT * FROM Pokedex""")
+			for dexnum, species, type1, type2, weight, height in cursor:
+				if dexnum == pokedex[pok].DexNum or species == pokedex[pok].species:
+					if dexnum != pokedex[pok].DexNum or species != pokedex[pok].species or type1 != pokedex[pok].type1 or type2 != pokedex[pok].type2 or weight != pokedex[pok].weight or height != pokedex[pok].height:
+						try:
+							update_dex(pokedex[pok])
+						except:
+							print(f'{pokedex[pok].species} update failed')
+		except:
+			insert_dex(pokedex[pok])
+	print("Pokedex Saved!")
 
-			if type(dexlist[index]) == list:
-			    if dexlist[index][0] in Types:
-			        type1 = dexlist[index][0]
-			    if dexlist[index][1] in Types:
-			        type2 = dexlist[index][1]
-			    index+=1
-			elif dexlist[index] in Types:
-				type1 = dexlist[index]
-				type2 = 'none'
-				index+=1
 
-			else:
-				species = dexlist[index]
-				index +=1
-		if type1 and type2 and species != "" and DexNum > 0:
-			pokedex[DexNum] = Pokemon.Pokemon(species,type1,type2,DexNum)
-			type1 = ""
-			type2 = ""
-			species = ""
-			DexNum = 0
+			
+				
+			
+
+
+def download_dex(pokedex):
+	#connects to database and creates new pokedex dictionary from data in pokedex table
+	try:
+
+		connection = oracledb.connect(
+			user = username,
+			password = pw,
+			dsn = path
+			)
+		cursor = connection.cursor()
+		cursor.execute("""SELECT * FROM Pokedex
+			ORDER BY dexnum""")
+		for dexnum, species, type1, type2, height, weight in cursor:
+			pok = Pokemon.Pokemon(species, type1, type2, dexnum)
+			pok.setHeightWeight(height,weight)
+			pokedex[dexnum] = pok
+		print('Pokedex downloaded...\n')
+	except:
+		print("Pokedex download failed or table not found. Pokedex table will be created.\n")
+
+
+
 
 
 
@@ -223,14 +294,15 @@ Main Processing
 
 Pokedex retrieval
 Menu manipulation
-Pokedex Print to File
+Pokedex upload
 
 '''
 
 
 
 pokedex = {}
-retrieve_dex(pokedex)
+download_dex(pokedex)
+
 answer = menu()
 ans = ""
 while answer != 6:
@@ -240,7 +312,7 @@ while answer != 6:
         if answer == 6:
         	break
     while answer not in (1,2,3,4,5,6):
-        answer = input("Incorrect answer, please try again")
+        answer = int(input("Incorrect answer, please try again\n>"))
     if answer == 1:
         poke = new_entry()
         try:
@@ -270,6 +342,6 @@ while answer != 6:
 	    done = input("Enter anything when done\n>")
     elif answer == 5:
 	    edit_entry(pokedex)
+	    pokedex = sort_dex(pokedex)
     answer = menu()
-print_dexfile(pokedex)
-
+upload_dex(pokedex)
